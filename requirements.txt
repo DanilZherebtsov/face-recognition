@@ -1,3 +1,5 @@
+# python3.7
 opencv-python
 numpy
-tensorflow
+tensorflow==2.7.0
+Image
