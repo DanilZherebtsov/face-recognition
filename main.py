@@ -18,92 +18,83 @@ def load_saved_model():
     return model
 
 
-def img_to_encoding(image_path, model):
+def img_to_encoding(image_path):
     '''Converts an image to an embedding vector by using the model'''
-    img = tf.keras.preprocessing.image.load_img(image_path, target_size=(160, 160))
-    img = np.around(np.array(img) / 255.0, decimals=12)
+    img = tf.keras.preprocessing.image.load_img(image_path, target_size = (160,160))
+    img = np.around(np.array(img) / 255.0, decimals = 12)
     x_train = np.expand_dims(img, axis=0)
     embedding = model.predict_on_batch(x_train)
     return embedding / np.linalg.norm(embedding, ord=2)
 
 
-def initialize_database(model):
+def initialize_database():
     '''Initialize the database of people names and their photos encodings'''
     database = {}
-    for file in os.listdir("employees"):
-        if file.endswith(".jpg"):
-            image_path = os.path.join("employees",file)
-            database[file[:-4]] = img_to_encoding(image_path, model)
+    for file in os.listdir('employees'):
+        if file.endswith('.jpg'):
+            image_path = os.path.join('employees', file)
+            embedding = img_to_encoding(image_path)
+            database[file[:-4]] = embedding
     return database
 
 
-def get_image_from_camera(cam_port=0):
+def get_image_from_camera(cam_port = 0):
     '''This function captures an image from the camera and returns it as a numpy array.'''
-    
     cam = cv2.VideoCapture(cam_port)
-    # give camera time to warm up
     time.sleep(1)
     result, image = cam.read()
     if result:
-        cv2.imshow("Captured Image", image)
-        cv2.waitKey(1000) # display for 3 seconds
-        cv2.destroyWindow("Captured Image"); cv2.waitKey(1)
-        cam.release() # turn off camera
+        cv2.imshow('Captured image', image)
+        cv2.waitKey(2000)
+        cv2.destroyWindow('Captured image'); cv2.waitKey(1)
+        cam.release()
         return image
     else:
-        raise Exception("No image detected. Please! try again")
+        raise Exception('No image detected. Please try again')
 
 
-def identify_person(image_path, database, model):
-    '''Implements face recognition by comparing the image embedding from the camera to the 
-    images embeddings in the database.'''
-    incoming_person_image_encoding =  img_to_encoding(image_path, model)
-    # Initialize "min_dist" to a large value
+def identify_person(image_path):
+    '''Compare the picture from the camera to the pictures in the database'''
+    incoming_person_image_encoding = img_to_encoding(image_path)
+
     distance_between_images = 100
-    # Loop over the database dictionary's names and encodings.
-    for (name, emplyee_encoding) in database.items():
-        # Compute L2 distance between the target "encoding" and the current db_enc from the database. (≈ 1 line)
-        dist = np.linalg.norm(incoming_person_image_encoding - emplyee_encoding)
+
+    for name, employee_encoding in database.items():
+        dist = np.linalg.norm(incoming_person_image_encoding - employee_encoding)
         if dist < distance_between_images:
             distance_between_images = dist
             identified_as = name
+    
     if distance_between_images > 0.7:
-        print(f"Not sure, maybe it is {identified_as}, the distance is {distance_between_images}")
+        print(f'Not sure, maybe it is {identified_as}')
     else:
-        print (f"Employee identified\nName: {identified_as}")
-        os.system(f"say '{identified_as} recognized'")
-    return distance_between_images, identified_as
+        print(f'Employee identified\nName: {identified_as}')
+        os.system(f"say 'Hello {identified_as}'")
 
 
-def recognize_face_from_camera(model):
-    '''This function recognizes a face from the camera'''
+def recognize_face_from_camera():
+    '''Main function to execute face recognition'''
     face_to_recognize = get_image_from_camera()
     cv2.imwrite('face_to_recognize.jpg', face_to_recognize)
-    identify_person('face_to_recognize.jpg', database, model)
+    identify_person('face_to_recognize.jpg')
     os.remove('face_to_recognize.jpg')
 
 
-def add_new_user_to_database(database, model):
-    '''This function adds a new user to the database by taking a 
-    picture from the camera and adding it to the database'''
-    name = input("Please enter your name: ")
+def add_new_user_to_database():
+    '''Take picture of new employee, store in employees folder and in database as an embedding'''
+    name = input('Please enter your name: ')
     image = get_image_from_camera()
-    image_path = "employees/" + name + ".jpg"
+    image_path = 'employees/' + name + '.jpg'
     cv2.imwrite(image_path, image)
-    database[name] = img_to_encoding(image_path, model)
-    print(f"New user '{name}' added to database")
+    database[name] = img_to_encoding(image_path)
+    print(f'New user "{name}" added to database')
     return database
 
 
-# show some pictures of people
-tf.keras.preprocessing.image.load_img("employees/Sarah Connor.jpg", target_size=(160, 160))
+model = load_saved_model()
 
-FRmodel = load_saved_model()
+database = initialize_database()
 
-database = initialize_database(FRmodel)
+database = add_new_user_to_database()
 
-database = add_new_user_to_database(database, FRmodel)
-
-recognize_face_from_camera(FRmodel)
-
-
+recognize_face_from_camera()
