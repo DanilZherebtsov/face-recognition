@@ -1,3 +1,5 @@
+.. image:: thumbnail.png
+
 Supporting code and prequisits for a YouTube `video <https://youtu.be/P0bcGZ88OGs>`_
 
 The `main.py` function contains a complete face recognition pipeline illustrating the one-shot-learning approach.
